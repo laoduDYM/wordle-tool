@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <script type="text/javascript" src="sql.js"></script>
+  <script type="text/javascript" src="dict.js"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <!-- <input type="file" id="dbFileEle" /> -->
+  <div style="position: relative;">
+    <img src="./img/my.png" alt="" style="position: absolute; right: 0px; width: 160px;top:300px" />
+  </div>
+
+  <span class="span">不包含的字母：</span>
+  <div class="codeDiv">
+    <input class="code2" id="notContainWord" style="width: 430px;" />
+  </div>
+  <span class="span">包含的字母：</span>
+  <div class="codeDiv">
+    <input class="code3" id="containWord" style="width: 430px;" />
+  </div>
+  </br>
+  <span class="span">已确定位置的字母：</span>
+  <div class="codeDiv">
+    <input class="code" />
+    <input class="code" />
+    <input class="code" />
+    <input class="code" />
+    <input class="code" />
+  </div>
+  <span class="span">指定位置不包含字母：</span>
+  <div class="codeDiv">
+    <input class="code1" />
+    <input class="code1" />
+    <input class="code1" />
+    <input class="code1" />
+    <input class="code1" />
+  </div>
+  <button id="run" onclick="run()">查询</button>
+  </br>
+  <!-- <textarea cols="200" rows="5" id="sql_imput">
+          SELECT * FROM words_dict
+    </textarea>
+
+  <textarea cols="200" rows="5">
+         SELECT word,translation FROM words_dict 
+		 where 
+		( word like '%h%' or word like '%e%' or word like '%e%' or word like '%e%' or word like '%e%')   //单词中包含哪些字母
+		and word like '_h_er'                                                                            //指定已经确定的字母
+		and( word not like '%l%' and word not like '%o%' )                                               //单词中不包含哪些字母
+		and substr(word,1,1)  not in ('a')																 //某一位置上不包含哪些字母
+    </textarea>
+
+  <button id="run" onclick="run()">查询</button> -->
+  </br>
+  <table id="result_table" border="1"></table>
+</body>
+<script>
+  $(function () {
+    $(".code").on("click", function () {
+      $(this).blur();
+      $(".code").eq(0).focus();
+      $(".code").unbind("click");
+    });
+    $(".code").on("focus", function () {
+      $(this).select();
+    });
+
+    $(".code").on("input", function () {
+      var value = $(this).val();
+      if (value.length == 5) {
+        $(".code").eq(0).val(value.slice(0, 1));
+        $(".code").eq(1).val(value.slice(1, 2));
+        $(".code").eq(2).val(value.slice(2, 3));
+        $(".code").eq(3).val(value.slice(3, 4));
+        $(".code").eq(4).val(value.slice(4));
+        /*$(".code").eq(3).focus(); //如果需要保留焦点，请把这条代码留上*/
+      } else if (value.length >= 1) {
+        $(this).val(value.slice(0, 1));
+        $(this).blur();
+        $(this).next().focus();
+      } else if (value == "") { //解决有些浏览器能输入字符e的问题
+        $(this).val("");
+      }
+    });
+
+    $(document).keyup(function (event) {
+      if (event.keyCode == 8) {
+        /* 监视删除按钮，手机和电脑上的keyCode都是8 */
+        var item = $("input:focus");
+        if (item.length) {
+          $(item).prev().focus();
+        }
+      }
+
+    });
+
+
+  });
+
+
+
+
+
+
+
+  var db;
+  // var dbFileElm = document.getElementById('dbFileEle');
+  // dbFileElm.onchange = function () {
+  //   undefined
+  //   var f = dbFileElm.files[0];
+  //   var r = new FileReader();
+  //   r.onload = function () {
+  //     undefined
+  //     var Uints = new Uint8Array(r.result);
+  //     //var UintsBase64 = arrayBufferToBase64(Uints)
+  //     db = new SQL.Database(base64ToUint8Array(dictDb));
+  //     var res = db.exec("SELECT * FROM words_dict");
+  //     console.log(res)
+  //     dict_to_table(res[0]);
+  //   }
+  //   r.readAsArrayBuffer(f);
+  // }
+
+  function run() {
+
+    var baseSql = " SELECT word,translation FROM words_dict where 1 = 1 "
+
+
+    //单词中包含哪些字母
+    var containWord = $("#containWord").val()
+    // ( word like '%h%' or word like '%e%' or word like '%e%' or word like '%e%' or word like '%e%')
+    var containWordSql = ""
+    if (containWord) {
+      containWordSql = "and ( "
+      var tempArr = containWord.split('');
+      for (let i = 0; i < tempArr.length; i++) {
+        const element = tempArr[i];
+        if (i == 0) {
+          containWordSql += ("word like '%" + element + "%'")
+        } else {
+          containWordSql += ("or word like '%" + element + "%'")
+        }
+      }
+      containWordSql += " ) "
+      baseSql += containWordSql
+    }
+
+    //单词中不包含哪些字母
+    var notContainWord = $("#notContainWord").val()
+    //and( word not like '%l%' and word not like '%o%' )
+    var notContainWordSql = ""
+    if (notContainWord) {
+      notContainWordSql = "and ( "
+      var tempArr = notContainWord.split('');
+      for (let i = 0; i < tempArr.length; i++) {
+        const element = tempArr[i];
+        if (i == 0) {
+          notContainWordSql += ("word not like '%" + element + "%' ")
+        } else {
+          notContainWordSql += (" and word not like '%" + element + "%'")
+        }
+      }
+      notContainWordSql += " ) "
+      baseSql += notContainWordSql
+    }
+
+
+    //指定已经确定的字母
+    //and word like '_h_er'
+    var explicitWord = "";
+    $.each($(".code"), function (i) {
+      var value = $(this).val();
+      explicitWord += value || '_';
+    });
+    var explicitWordSql = " and word like '" + explicitWord + "'";
+    baseSql += explicitWordSql
+
+
+
+    //某一位置上不包含哪些字母
+    var indexNotWord = ""
+    var isHaveFlag = false;
+    $.each($(".code1"), function (i) {
+      var value1 = $(this).val();
+      if (value1) {
+        isHaveFlag = true
+      }
+      if (i == 4) {
+        indexNotWord += (value1);
+      } else {
+        indexNotWord += (value1 + '_');
+      }
+
+    });
+    console.log(indexNotWord)
+
+    if (isHaveFlag) {
+
+
+      // LOWER(substr(word,1,1)) not in (LOWER('A'))
+      var indexNotWordSql = ""
+
+      indexNotWordSql = "and  "
+      var flag = true;
+      var tempArr = indexNotWord.split('_');
+      for (let i = 0; i < tempArr.length; i++) {
+        const element = tempArr[i];
+
+        if (element) {
+          let tempArr1 = element.split("")
+          var inStr = "LOWER(substr(word," + (i + 1) + ",1)) not in ("
+          for (let j = 0; j < tempArr1.length; j++) {
+
+            const element1 = tempArr1[j];
+
+            if (j == 0) {
+              inStr += ("LOWER('" + element1 + "')");
+            } else {
+              inStr += (",LOWER('" + element1 + "')");
+            }
+          }
+          inStr += ") "
+          if (flag) {
+            flag = false
+            indexNotWordSql += inStr
+          } else {
+            indexNotWordSql += (" and " + inStr);
+          }
+        }
+
+      }
+
+      baseSql += indexNotWordSql
+    }
+
+
+
+
+
+    if (!db) {
+      db = new SQL.Database(base64ToUint8Array(dictDb));
+    }
+    //var sqlstr = $("#sql_imput").val();
+    console.log(baseSql)
+    var res = db.exec(baseSql);
+    $('#result_table').empty()
+    dict_to_table(res[0]);
+  }
+
+  function dict_to_table(dict) {
+    $('#result_table').empty()
+
+    var column_names = "<thead><thead><tr>";
+    for (var i = 0; i < dict.columns.length; i++) {
+      column_names += "<th>" + dict.columns[i] + "</th>";
+    }
+    column_names += "</tr></thead></thead>";
+
+    var column_values = "<tbody>";
+    for (var i = 0; i < dict.values.length; i++) {
+      column_values += "<tr>";
+      for (var j = 0; j < dict.values[i].length; j++) {
+        column_values += "<th>" + dict.values[i][j] + "</th>";
+      }
+      column_values += "</tr>";
+    }
+    column_values += "</tbody>";
+    $('#result_table').append(column_names + column_values);
+  }
+
+  //arrayBuffer转Base64
+  function arrayBufferToBase64(bytes) {
+    var binary = '';
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  }
+  //Base64转arrayBuffer
+  function base64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+</script>
+
+<style type="text/css">
+  .codeDiv {
+    width: 500px;
+    font-size: 0;
+    display: inline-block;
+  }
+
+  .code,
+  .code1,
+  .code2,
+  .code3 {
+    border: none;
+    width: 70px;
+    border-bottom: 1px solid black;
+    outline: none;
+    background-color: transparent;
+    height: 30px;
+    color: black;
+    margin: 0 8px;
+    text-align: center;
+    font-size: 22px;
+    border-radius: inherit;
+    padding: 1px 2px;
+  }
+
+
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0;
+  }
+
+  .btn {
+    display: block;
+    margin: 30px auto;
+  }
+
+  .span {
+    display: inline-block;
+    text-align: right;
+    width: 200px;
+    font-size: 20px;
+  }
+</style>
+
+</html>
